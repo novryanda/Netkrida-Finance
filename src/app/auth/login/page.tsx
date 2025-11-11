@@ -1,7 +1,10 @@
 
+
 import { Suspense } from "react"
 import { GalleryVerticalEnd } from "lucide-react"
 import { LoginForm } from "@/components/auth/login-form"
+import { GridPattern } from "@/components/ui/grid-pattern"
+import { Terminal, TypingAnimation } from "@/components/ui/terminal"
 
 export default function LoginPage() {
   return (
@@ -17,12 +20,26 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-      <div className="bg-muted relative hidden lg:block">
-        <img
-          src="/placeholder.svg"
-          alt="Image"
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        />
+      <div className="relative hidden lg:flex items-center justify-center bg-muted overflow-hidden">
+        {/* Background grid pattern */}
+        <GridPattern className="absolute inset-0 h-full w-full" width={40} height={40} strokeDasharray="4 4" />
+        {/* Terminal animation */}
+        <div className="relative z-10 w-full max-w-lg mx-auto">
+          <Terminal className="bg-background/80 shadow-xl backdrop-blur">
+            <TypingAnimation className="text-lg font-bold text-primary" duration={40}>
+              Welcome to Netkrida Finance System
+            </TypingAnimation>
+            <TypingAnimation className="text-base text-muted-foreground" duration={30}>
+              Empowering your financial management.
+            </TypingAnimation>
+            <TypingAnimation className="text-base text-muted-foreground" duration={30}>
+              Secure. Reliable. Easy to use.
+            </TypingAnimation>
+            <TypingAnimation className="text-base text-primary" duration={30}>
+              Login to get started 🚀
+            </TypingAnimation>
+          </Terminal>
+        </div>
       </div>
     </div>
   )

@@ -15,10 +15,10 @@ export default function Header({ onLogin }: HeaderProps) {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-slate-200/90 backdrop-blur-md border-b border-slate-300 shadow-sm">
-  <nav className="w-full px-0 py-3">
+  <nav className="w-full px-2 md:px-0 py-3">
         <div className="flex items-center justify-between">
           {/* Logo - Positioned Left */}
-          <Link href="/" className="flex items-center group pl-16">
+          <Link href="/" className="flex items-center group md:pl-16">
             <img
               src="/netkrida.png"
               alt="Netkrida Logo"

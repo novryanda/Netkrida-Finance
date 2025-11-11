@@ -43,8 +43,10 @@ declare module "next-auth/jwt" {
  * @see https://next-auth.js.org/configuration/options
  */
 export const authConfig = {
+  // Add trustHost for Vercel deployment or custom domain
+  trustHost: true,
   providers: [
-    CredentialsProvider({
+  CredentialsProvider({
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
@@ -91,7 +93,7 @@ export const authConfig = {
         };
       },
     }),
-    DiscordProvider,
+  DiscordProvider,
     /**
      * ...add more providers here.
      *
@@ -105,9 +107,13 @@ export const authConfig = {
   adapter: PrismaAdapter(db) as any,
   session: {
     strategy: "jwt",
+    maxAge: 24 * 60 * 60, // 24 hours
+    updateAge: 60 * 60, // 1 hour
   },
   pages: {
     signIn: "/auth/login",
+    signOut: "/auth/login",
+    error: "/auth/login",
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -122,13 +128,11 @@ export const authConfig = {
       if (token && session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
-        
         // Fetch latest user data from database to get updated image
         const user = await db.user.findUnique({
           where: { id: token.id },
           select: { image: true, name: true },
         });
-        
         if (user) {
           session.user.image = user.image;
           session.user.name = user.name;
@@ -136,5 +140,60 @@ export const authConfig = {
       }
       return session;
     },
+    async redirect({ url, baseUrl }) {
+      // Handle logout redirects
+      if (url.includes("/api/auth/signout") || url.includes("signout")) {
+        return `${baseUrl}/auth/login`;
+      }
+      // If there's a specific URL to redirect to, use it
+      if (url.startsWith("/") && !url.startsWith("//")) {
+        return `${baseUrl}${url}`;
+      }
+      // For successful login, redirect to dashboard
+      if (url === baseUrl || url.includes("/api/auth/callback")) {
+        return `${baseUrl}/dashboard`;
+      }
+      return url.startsWith(baseUrl) ? url : `${baseUrl}/dashboard`;
+    },
   },
+  // Cookie configuration for NextAuth v5 (Auth.js) compatibility
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === "production"
+        ? `__Secure-authjs.session-token`
+        : `authjs.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+    callbackUrl: {
+      name: process.env.NODE_ENV === "production"
+        ? `__Secure-authjs.callback-url`
+        : `authjs.callback-url`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+    csrfToken: {
+      name: process.env.NODE_ENV === "production"
+        ? `__Secure-authjs.csrf-token`
+        : `authjs.csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
+  // Production-specific settings
+  ...(process.env.NODE_ENV === "production" && {
+    useSecureCookies: true,
+  }),
 } satisfies NextAuthConfig;

@@ -9,10 +9,11 @@ import path from "path";
 
 export async function GET(
   request: Request,
-  { params }: { params: { filename: string } }
+  context: { params: { filename: string } }
 ) {
   try {
-    const { filename } = params;
+  const { params } = context;
+  const filename = params.filename;
 
     // Security: Prevent directory traversal
     if (filename.includes("..") || filename.includes("/") || filename.includes("\\")) {

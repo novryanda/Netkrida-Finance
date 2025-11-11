@@ -1,0 +1,222 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+    output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
+    // Further reading:
+    // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
+    // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
+    url      = env("DATABASE_URL")
+}
+
+// =====================
+// ENUMS
+// =====================
+
+enum UserRole {
+  ADMIN
+  FINANCE
+  STAFF
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  ON_HOLD
+}
+
+enum ExpenseType {
+  DIRECT
+  REIMBURSEMENT
+}
+
+enum ReimbursementStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+// =====================
+// USER & AUTH MODELS
+// =====================
+
+model User {
+    id            String    @id @default(cuid())
+    name          String?
+    email         String?   @unique
+    emailVerified DateTime?
+    image         String?
+    password      String?   // Hashed password for credentials login
+    // Finance System fields
+    role          UserRole  @default(STAFF)
+    bankName      String?
+    bankAccountNo String?
+    isActive      Boolean   @default(true)
+    createdAt     DateTime  @default(now())
+    updatedAt     DateTime  @updatedAt
+
+    // NextAuth relations
+    accounts      Account[]
+    sessions      Session[]
+    posts         Post[]
+
+    // Finance System relations
+    createdProjects    Project[]        @relation("CreatedProjects")
+    createdExpenses    Expense[]        @relation("CreatedExpenses")
+    submittedReimburse Reimbursement[]  @relation("SubmittedReimbursements")
+    approvedReimburse  Reimbursement[]  @relation("ApprovedReimbursements")
+    paidReimburse      Reimbursement[]  @relation("PaidReimbursements")
+    projectRevisions   ProjectRevision[]
+}
+
+model Account {
+    id                       String  @id @default(cuid())
+    userId                   String
+    type                     String
+    provider                 String
+    providerAccountId        String
+    refresh_token            String?
+    access_token             String?
+    expires_at               Int?
+    token_type               String?
+    scope                    String?
+    id_token                 String?
+    session_state            String?
+    user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    refresh_token_expires_in Int?
+
+    @@unique([provider, providerAccountId])
+}
+
+model Session {
+    id           String   @id @default(cuid())
+    sessionToken String   @unique
+    userId       String
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+    identifier String
+    token      String   @unique
+    expires    DateTime
+
+    @@unique([identifier, token])
+}
+
+model Post {
+    id        Int      @id @default(autoincrement())
+    name      String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    createdBy   User   @relation(fields: [createdById], references: [id])
+    createdById String
+
+    @@index([name])
+}
+
+// =====================
+// FINANCE SYSTEM MODELS
+// =====================
+
+model Project {
+  id           String        @id @default(cuid())
+  projectName  String
+  clientName   String
+  projectValue Decimal       @db.Decimal(15, 2)
+  deadline     DateTime
+  status       ProjectStatus @default(ACTIVE)
+  description  String?       @db.Text
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  createdBy    User          @relation("CreatedProjects", fields: [createdById], references: [id])
+  createdById  String
+
+  expenses         Expense[]
+  projectRevisions ProjectRevision[]
+
+  @@index([status])
+  @@index([deadline])
+  @@map("project")
+}
+
+model ProjectRevision {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  oldValue    Decimal  @db.Decimal(15, 2)
+  newValue    Decimal  @db.Decimal(15, 2)
+  reason      String   @db.Text
+
+  changedAt   DateTime @default(now())
+  changedBy   User     @relation(fields: [changedById], references: [id])
+  changedById String
+
+  @@index([projectId])
+  @@map("project_revision")
+}
+
+model Expense {
+  id           String      @id @default(cuid())
+  projectId    String
+  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  expenseType  ExpenseType
+  description  String      @db.Text
+  amount       Decimal     @db.Decimal(15, 2)
+  expenseDate  DateTime
+  receiptUrl   String?
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  createdBy    User        @relation("CreatedExpenses", fields: [createdById], references: [id])
+  createdById  String
+
+  reimbursement Reimbursement?
+
+  @@index([projectId])
+  @@index([expenseType])
+  @@index([expenseDate])
+  @@map("expense")
+}
+
+model Reimbursement {
+  id          String             @id @default(cuid())
+  expenseId   String             @unique
+  expense     Expense            @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  status      ReimbursementStatus @default(PENDING)
+
+  submittedAt DateTime           @default(now())
+  submittedBy User               @relation("SubmittedReimbursements", fields: [submittedById], references: [id])
+  submittedById String
+
+  approvedAt  DateTime?
+  approvedBy  User?              @relation("ApprovedReimbursements", fields: [approvedById], references: [id])
+  approvedById String?
+
+  paidAt         DateTime?
+  paidBy         User?           @relation("PaidReimbursements", fields: [paidById], references: [id])
+  paidById       String?
+  paymentProofUrl String?
+
+  rejectionReason String?        @db.Text
+
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([status])
+  @@index([submittedById])
+  @@map("reimbursement")
+}

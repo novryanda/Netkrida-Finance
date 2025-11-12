@@ -129,10 +129,15 @@ export default function HomePage() {
                 Login ke Dashboard
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
-              <button className="inline-flex items-center gap-2 px-8 py-4 bg-white text-slate-800 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border border-slate-200">
+              <a
+                href="https://netkrida.co.id/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-white text-slate-800 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border border-slate-200"
+              >
                 <FileText className="w-5 h-5" />
-                Pelajari Lebih Lanjut
-              </button>
+                Informasi Lebih Lanjut
+              </a>
             </div>
           </div>
         </div>

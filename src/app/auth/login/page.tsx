@@ -27,16 +27,19 @@ export default function LoginPage() {
         <div className="relative z-10 w-full max-w-lg mx-auto">
           <Terminal className="bg-background/80 shadow-xl backdrop-blur">
             <TypingAnimation className="text-lg font-bold text-primary" duration={40}>
-              Welcome to Netkrida Finance System
+              Selamat datang di Sistem Keuangan Netkrida
             </TypingAnimation>
             <TypingAnimation className="text-base text-muted-foreground" duration={30}>
-              Empowering your financial management.
+              Mempermudah pengelolaan keuangan Anda.
             </TypingAnimation>
             <TypingAnimation className="text-base text-muted-foreground" duration={30}>
-              Secure. Reliable. Easy to use.
+              Aman. Andal. Mudah digunakan.
             </TypingAnimation>
             <TypingAnimation className="text-base text-primary" duration={30}>
-              Login to get started 🚀
+              Silakan login untuk memulai 🚀
+            </TypingAnimation>
+            <TypingAnimation className="text-base text-primary" duration={30}>
+              Hubungi admin jika mengalami kendala.
             </TypingAnimation>
           </Terminal>
         </div>

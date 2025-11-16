@@ -35,6 +35,7 @@ export default async function SettingsPage() {
           <ProfilePictureUpload
             currentImage={user.image}
             userName={user.name}
+            currentPublicId={user.imagePublicId}
           />
           <ProfileForm user={user} />
         </div>

@@ -15,16 +15,17 @@ import { Loader2, Upload, X, User } from "lucide-react";
 interface ProfilePictureUploadProps {
   currentImage: string | null;
   userName: string | null;
+  currentPublicId?: string | null; // Tambahan jika backend sudah support
 }
 
-export function ProfilePictureUpload({
-  currentImage,
-  userName,
-}: ProfilePictureUploadProps) {
+//
+export function ProfilePictureUpload(props: ProfilePictureUploadProps) {
+  const { currentImage, userName, currentPublicId = null } = props;
   const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImage);
+  const [publicId, setPublicId] = useState<string | null>(currentPublicId);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,13 +53,13 @@ export function ProfilePictureUpload({
     };
     reader.readAsDataURL(file);
 
-    // Upload file
+    // Upload file to Cloudinary via API
     setIsUploading(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("/api/uploads", {
+      const response = await fetch("/api/settings/profile/picture", {
         method: "POST",
         body: formData,
       });
@@ -69,7 +70,19 @@ export function ProfilePictureUpload({
         throw new Error(data.message || "Failed to upload profile picture");
       }
 
-      toast.success("Profile picture uploaded successfully");
+      setPreviewUrl(data.url || null);
+      setPublicId(data.public_id || null);
+      // Save image URL dan public_id ke user profile
+      const saveRes = await fetch("/api/settings/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: data.url, imagePublicId: data.public_id }),
+      });
+      const saveData = await saveRes.json();
+      if (!saveRes.ok || !saveData.success) {
+        throw new Error(saveData.message || "Failed to save profile picture");
+      }
+      toast.success("Profile picture uploaded & saved");
       router.refresh();
     } catch (error) {
       console.error("Error uploading profile picture:", error);
@@ -91,18 +104,34 @@ export function ProfilePictureUpload({
   const handleDeletePicture = async () => {
     setIsDeleting(true);
     try {
-      const response = await fetch("/api/uploads", {
+      if (!publicId) {
+        toast.error("public_id not found for this image");
+        setIsDeleting(false);
+        return;
+      }
+      // Hapus dari Cloudinary
+      const response = await fetch("/api/settings/profile/picture", {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ public_id: publicId }),
       });
-
       const data = await response.json();
-
       if (!response.ok || !data.success) {
         throw new Error(data.message || "Failed to delete profile picture");
       }
-
+      // Clear image dan imagePublicId di user profile
+      const saveRes = await fetch("/api/settings/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: null, imagePublicId: null }),
+      });
+      const saveData = await saveRes.json();
+      if (!saveRes.ok || !saveData.success) {
+        throw new Error(saveData.message || "Failed to clear profile picture");
+      }
       toast.success("Profile picture deleted successfully");
       setPreviewUrl(null);
+      setPublicId(null);
       router.refresh();
     } catch (error) {
       console.error("Error deleting profile picture:", error);

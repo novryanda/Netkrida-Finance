@@ -13,6 +13,7 @@ export const UserSchema = z.object({
   email: z.string().email().nullable(),
   emailVerified: z.date().nullable(),
   image: z.string().url().nullable(),
+  imagePublicId: z.string().nullable(),
   password: z.string().nullable(),
   role: z.nativeEnum(UserRole),
   bankName: z.string().nullable(),
@@ -46,6 +47,7 @@ export const UpdateUserSchema = z.object({
   bankName: z.string().optional(),
   bankAccountNo: z.string().optional(),
   isActive: z.boolean().optional(),
+  imagePublicId: z.string().optional().nullable(),
 });
 
 export type UpdateUserInput = z.infer<typeof UpdateUserSchema>;

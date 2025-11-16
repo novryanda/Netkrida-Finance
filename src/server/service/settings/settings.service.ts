@@ -86,19 +86,20 @@ export class SettingsService {
   /**
    * Update profile picture
    */
-  async updateProfilePicture(userId: string, imageUrl: string) {
+  async updateProfilePicture(userId: string, imageUrl: string, imagePublicId: string) {
     // Validasi user exists
     const existingUser = await settingsRepository.getUserProfile(userId);
     if (!existingUser) {
       throw new Error("User not found");
     }
-
+  
     // Update profile picture
     const updatedUser = await settingsRepository.updateProfilePicture(
       userId,
-      imageUrl
+      imageUrl,
+      imagePublicId
     );
-
+  
     return {
       success: true,
       message: "Profile picture updated successfully",

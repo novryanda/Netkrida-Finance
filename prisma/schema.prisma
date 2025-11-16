@@ -49,32 +49,33 @@ enum ReimbursementStatus {
 // =====================
 
 model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String?   @unique
-    emailVerified DateTime?
-    image         String?
-    password      String?   // Hashed password for credentials login
-    // Finance System fields
-    role          UserRole  @default(STAFF)
-    bankName      String?
-    bankAccountNo String?
-    isActive      Boolean   @default(true)
-    createdAt     DateTime  @default(now())
-    updatedAt     DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  imagePublicId String?   // Cloudinary public_id
+  password      String?   // Hashed password for credentials login
+  // Finance System fields
+  role          UserRole  @default(STAFF)
+  bankName      String?
+  bankAccountNo String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-    // NextAuth relations
-    accounts      Account[]
-    sessions      Session[]
-    posts         Post[]
+  // NextAuth relations
+  accounts      Account[]
+  sessions      Session[]
+  posts         Post[]
 
-    // Finance System relations
-    createdProjects    Project[]        @relation("CreatedProjects")
-    createdExpenses    Expense[]        @relation("CreatedExpenses")
-    submittedReimburse Reimbursement[]  @relation("SubmittedReimbursements")
-    approvedReimburse  Reimbursement[]  @relation("ApprovedReimbursements")
-    paidReimburse      Reimbursement[]  @relation("PaidReimbursements")
-    projectRevisions   ProjectRevision[]
+  // Finance System relations
+  createdProjects    Project[]        @relation("CreatedProjects")
+  createdExpenses    Expense[]        @relation("CreatedExpenses")
+  submittedReimburse Reimbursement[]  @relation("SubmittedReimbursements")
+  approvedReimburse  Reimbursement[]  @relation("ApprovedReimbursements")
+  paidReimburse      Reimbursement[]  @relation("PaidReimbursements")
+  projectRevisions   ProjectRevision[]
 }
 
 model Account {

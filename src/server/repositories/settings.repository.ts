@@ -21,6 +21,7 @@ export class SettingsRepository {
         bankName: true,
         bankAccountNo: true,
         image: true,
+        imagePublicId: true,
         isActive: true,
         createdAt: true,
         updatedAt: true,
@@ -54,6 +55,7 @@ export class SettingsRepository {
           bankAccountNo: data.bankAccountNo,
         }),
         ...(data.image !== undefined && { image: data.image }),
+        ...(data.imagePublicId !== undefined && { imagePublicId: data.imagePublicId }),
       },
       select: {
         id: true,
@@ -63,6 +65,7 @@ export class SettingsRepository {
         bankName: true,
         bankAccountNo: true,
         image: true,
+        imagePublicId: true,
         isActive: true,
         createdAt: true,
         updatedAt: true,
@@ -88,15 +91,16 @@ export class SettingsRepository {
   /**
    * Update profile picture
    */
-  async updateProfilePicture(userId: string, imageUrl: string) {
+  async updateProfilePicture(userId: string, imageUrl: string, imagePublicId: string) {
     return await db.user.update({
       where: { id: userId },
-      data: { image: imageUrl },
+      data: { image: imageUrl, imagePublicId },
       select: {
         id: true,
         name: true,
         email: true,
         image: true,
+        imagePublicId: true,
       },
     });
   }

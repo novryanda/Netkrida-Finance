@@ -11,6 +11,7 @@ export const UpdateProfileSchema = z.object({
   bankName: z.string().optional().nullable(),
   bankAccountNo: z.string().optional().nullable(),
   image: z.string().optional().nullable(),
+  imagePublicId: z.string().optional().nullable(),
 });
 
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;

@@ -3,7 +3,7 @@
  * Business logic untuk admin mengelola projects
  */
 
-import { projectRepository } from "@/server/repositories/project.repository";
+import { projectRepository, type ProjectWithRelations } from "@/server/repositories/project.repository";
 import { ProjectStatus } from "@/server/schema/enums";
 import type {
   CreateProjectInput,
@@ -32,7 +32,7 @@ export class AdminProjectService {
   /**
    * Get project by ID with expenses
    */
-  async getProjectById(id: string) {
+  async getProjectById(id: string): Promise<ProjectWithRelations & { totalExpenses: number; remainingBudget: number }> {
     const project = await projectRepository.findById(id);
 
     if (!project) {
@@ -40,7 +40,7 @@ export class AdminProjectService {
     }
 
     // Calculate total expenses
-    const totalExpenses = project.expenses.reduce((sum, expense) => {
+    const totalExpenses = project.expenses.reduce((sum: number, expense) => {
       return sum + Number(expense.amount);
     }, 0);
 

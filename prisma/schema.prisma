@@ -39,9 +39,22 @@ enum ExpenseType {
 
 enum ReimbursementStatus {
   PENDING
+  REVIEWED
   APPROVED
   PAID
   REJECTED
+}
+
+enum DirectExpenseStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+enum ExpenseSourceType {
+  REIMBURSEMENT
+  DIRECT_EXPENSE
 }
 
 // =====================
@@ -70,12 +83,17 @@ model User {
   posts         Post[]
 
   // Finance System relations
-  createdProjects    Project[]        @relation("CreatedProjects")
-  createdExpenses    Expense[]        @relation("CreatedExpenses")
-  submittedReimburse Reimbursement[]  @relation("SubmittedReimbursements")
-  approvedReimburse  Reimbursement[]  @relation("ApprovedReimbursements")
-  paidReimburse      Reimbursement[]  @relation("PaidReimbursements")
-  projectRevisions   ProjectRevision[]
+  createdProjects     Project[]              @relation("CreatedProjects")
+  submittedReimburse  Reimbursement[]        @relation("SubmittedReimbursements")
+  reviewedReimburse   Reimbursement[]        @relation("ReviewedReimbursements")
+  approvedReimburse   Reimbursement[]        @relation("ApprovedReimbursements")
+  paidReimburse       Reimbursement[]        @relation("PaidReimbursements")
+  projectRevisions    ProjectRevision[]
+  createdCategories   ExpenseCategory[]      @relation("CreatedCategories")
+  createdDirectExpenses DirectExpenseRequest[] @relation("CreatedDirectExpenses")
+  approvedDirectExpenses DirectExpenseRequest[] @relation("ApprovedDirectExpenses")
+  paidDirectExpenses   DirectExpenseRequest[] @relation("PaidDirectExpenses")
+  recordedExpenses    Expense[]              @relation("RecordedExpenses")
 }
 
 model Account {
@@ -145,6 +163,8 @@ model Project {
 
   expenses         Expense[]
   projectRevisions ProjectRevision[]
+  reimbursements   Reimbursement[]
+  directExpenses   DirectExpenseRequest[]
 
   @@index([status])
   @@index([deadline])
@@ -169,55 +189,138 @@ model ProjectRevision {
 }
 
 model Expense {
-  id           String      @id @default(cuid())
-  projectId    String
-  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id              String            @id @default(cuid())
+  projectId       String?
+  project         Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  categoryId      String
+  category        ExpenseCategory   @relation(fields: [categoryId], references: [id])
 
-  expenseType  ExpenseType
-  description  String      @db.Text
-  amount       Decimal     @db.Decimal(15, 2)
-  expenseDate  DateTime
-  receiptUrl   String?
+  sourceType      ExpenseSourceType
+  sourceId        String            // reimbursement.id or directExpenseRequest.id
+  
+  description     String            @db.Text
+  amount          Decimal           @db.Decimal(15, 2)
+  expenseDate     DateTime
+  receiptUrl      String?
+  paymentProofUrl String?
 
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  createdBy    User        @relation("CreatedExpenses", fields: [createdById], references: [id])
-  createdById  String
+  recordedAt      DateTime          @default(now())
+  recordedBy      User              @relation("RecordedExpenses", fields: [recordedById], references: [id])
+  recordedById    String
 
-  reimbursement Reimbursement?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   @@index([projectId])
-  @@index([expenseType])
+  @@index([categoryId])
+  @@index([sourceType])
   @@index([expenseDate])
   @@map("expense")
 }
 
 model Reimbursement {
-  id          String             @id @default(cuid())
-  expenseId   String             @unique
-  expense     Expense            @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  id          String              @id @default(cuid())
+  projectId   String
+  project     Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  amount      Decimal             @db.Decimal(15, 2)
+  description String              @db.Text
+  expenseDate DateTime
+  receiptUrl  String
 
   status      ReimbursementStatus @default(PENDING)
 
-  submittedAt DateTime           @default(now())
-  submittedBy User               @relation("SubmittedReimbursements", fields: [submittedById], references: [id])
+  submittedAt   DateTime          @default(now())
+  submittedBy   User              @relation("SubmittedReimbursements", fields: [submittedById], references: [id])
   submittedById String
 
-  approvedAt  DateTime?
-  approvedBy  User?              @relation("ApprovedReimbursements", fields: [approvedById], references: [id])
-  approvedById String?
+  reviewedAt    DateTime?
+  reviewedBy    User?             @relation("ReviewedReimbursements", fields: [reviewedById], references: [id])
+  reviewedById  String?
+  reviewNotes   String?           @db.Text
 
-  paidAt         DateTime?
-  paidBy         User?           @relation("PaidReimbursements", fields: [paidById], references: [id])
-  paidById       String?
-  paymentProofUrl String?
+  approvedAt    DateTime?
+  approvedBy    User?             @relation("ApprovedReimbursements", fields: [approvedById], references: [id])
+  approvedById  String?
+  approvalNotes String?           @db.Text
 
-  rejectionReason String?        @db.Text
+  paidAt           DateTime?
+  paidBy           User?         @relation("PaidReimbursements", fields: [paidById], references: [id])
+  paidById         String?
+  paymentProofUrl  String?
+  paymentNotes     String?       @db.Text
 
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  rejectionReason  String?       @db.Text
+  rejectedBy       String?       // userId who rejected (FINANCE or ADMIN)
+  rejectedAt       DateTime?
+
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
 
   @@index([status])
   @@index([submittedById])
+  @@index([projectId])
   @@map("reimbursement")
+}
+
+model ExpenseCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   User     @relation("CreatedCategories", fields: [createdById], references: [id])
+  createdById String
+
+  expenses       Expense[]
+  directExpenses DirectExpenseRequest[]
+
+  @@index([isActive])
+  @@map("expense_category")
+}
+
+model DirectExpenseRequest {
+  id          String              @id @default(cuid())
+  projectId   String?
+  project     Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  
+  categoryId  String
+  category    ExpenseCategory     @relation(fields: [categoryId], references: [id])
+
+  amount      Decimal             @db.Decimal(15, 2)
+  description String              @db.Text
+  expenseDate DateTime
+  invoiceUrl  String              // Invoice/nota sebelum bayar (required)
+
+  status      DirectExpenseStatus @default(PENDING)
+
+  createdAt   DateTime            @default(now())
+  createdBy   User                @relation("CreatedDirectExpenses", fields: [createdById], references: [id])
+  createdById String
+
+  approvedAt    DateTime?
+  approvedBy    User?             @relation("ApprovedDirectExpenses", fields: [approvedById], references: [id])
+  approvedById  String?
+  approvalNotes String?           @db.Text
+
+  paidAt           DateTime?
+  paidBy           User?          @relation("PaidDirectExpenses", fields: [paidById], references: [id])
+  paidById         String?
+  paymentProofUrl  String?
+  paymentDate      DateTime?
+  paymentNotes     String?        @db.Text
+
+  rejectionReason  String?        @db.Text
+  rejectedAt       DateTime?
+
+  updatedAt   DateTime            @updatedAt
+
+  @@index([status])
+  @@index([createdById])
+  @@index([projectId])
+  @@index([categoryId])
+  @@map("direct_expense_request")
 }

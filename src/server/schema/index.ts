@@ -14,4 +14,6 @@ export * from "./user.schema";
 export * from "./project.schema";
 export * from "./expense.schema";
 export * from "./reimbursement.schema";
+export * from "./category.schema";
+export * from "./directExpense.schema";
 export * from "./settings.schema";

@@ -54,12 +54,12 @@ const menuByRole = {
     },
     {
       title: "Category",
-      url: "/dashboard/admin/category",
+      url: "/dashboard/admin/categories",
       icon: ShoppingCart,
     },
     {
       title: "Expenses",
-      url: "/dashboard/admin/expenses",
+      url: "/dashboard/admin/direct-expenses",
       icon: Receipt,
     },
     {
@@ -85,18 +85,8 @@ const menuByRole = {
       icon: LayoutDashboard,
     },
     {
-      title: "Projects",
-      url: "/dashboard/finance/projects",
-      icon: FolderKanban,
-    },
-    {
-      title: "Category",
-      url: "/dashboard/finance/category",
-      icon: ShoppingCart,
-    },
-    {
       title: "Payments",
-      url: "/dashboard/finance/payments",
+      url: "/dashboard/finance/direct-expenses",
       icon: Wallet,
     },
     {
@@ -117,19 +107,9 @@ const menuByRole = {
       icon: LayoutDashboard,
     },
     {
-      title: "My Expenses",
-      url: "/dashboard/staff/expenses",
-      icon: Receipt,
-    },
-    {
       title: "Reimbursements",
       url: "/dashboard/staff/reimbursements",
       icon: FileText,
-    },
-    {
-      title: "Projects",
-      url: "/dashboard/staff/projects",
-      icon: FolderKanban,
     },
   ],
 }

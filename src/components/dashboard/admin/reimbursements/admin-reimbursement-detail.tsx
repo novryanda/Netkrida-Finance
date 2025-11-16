@@ -1,0 +1,417 @@
+/**
+ * Admin Reimbursement Detail Component
+ * Detail dengan action approve/reject
+ */
+
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { StatusBadge } from "@/components/shared/status-badge";
+import { ExpenseTimeline } from "@/components/shared/expense-timeline";
+import { ArrowLeft, Eye, CheckCircle, XCircle } from "lucide-react";
+import Link from "next/link";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import { ReimbursementStatus } from "@/server/schema/enums";
+
+export function AdminReimbursementDetail({ id }: { id: string }) {
+  const router = useRouter();
+  const [reimbursement, setReimbursement] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  
+  const [approvalNotes, setApprovalNotes] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchReimbursement();
+  }, [id]);
+
+  const fetchReimbursement = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/admin/reimbursements/${id}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          toast.error("Reimbursement not found");
+          router.push("/dashboard/admin/reimbursements");
+          return;
+        }
+        throw new Error("Failed to fetch reimbursement");
+      }
+
+      const data = await response.json();
+      setReimbursement(data);
+    } catch (error: any) {
+      console.error("Error fetching reimbursement:", error);
+      toast.error(error.message || "Failed to load reimbursement");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    try {
+      setIsSubmitting(true);
+      const response = await fetch(`/api/admin/reimbursements/${id}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approvalNotes }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to approve reimbursement");
+      }
+
+      toast.success("Reimbursement approved successfully");
+      setIsApproveDialogOpen(false);
+      fetchReimbursement();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to approve reimbursement");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReject = async () => {
+    try {
+      setIsSubmitting(true);
+      const response = await fetch(`/api/admin/reimbursements/${id}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rejectionReason }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to reject reimbursement");
+      }
+
+      toast.success("Reimbursement rejected");
+      setIsRejectDialogOpen(false);
+      fetchReimbursement();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to reject reimbursement");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const formatCurrency = (amount: string | number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(Number(amount));
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-8">
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!reimbursement) {
+    return null;
+  }
+
+  const canApprove = reimbursement.status === ReimbursementStatus.REVIEWED;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard/admin/reimbursements">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Reimbursement Detail</h1>
+            <p className="text-muted-foreground">Review and approve reimbursement request</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <StatusBadge type="reimbursement" status={reimbursement.status} />
+          {canApprove && (
+            <>
+              <Button onClick={() => setIsApproveDialogOpen(true)} variant="default">
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Approve
+              </Button>
+              <Button onClick={() => setIsRejectDialogOpen(true)} variant="destructive">
+                <XCircle className="h-4 w-4 mr-2" />
+                Reject
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Expense Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Amount</p>
+                  <p className="text-2xl font-bold">{formatCurrency(reimbursement.amount)}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Expense Date</p>
+                  <p className="text-lg font-medium">
+                    {format(new Date(reimbursement.expenseDate), "dd MMMM yyyy")}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Staff</p>
+                <p className="font-medium">{reimbursement.submittedBy.name}</p>
+                <p className="text-sm text-muted-foreground">{reimbursement.submittedBy.email}</p>
+              </div>
+
+              {reimbursement.submittedBy.bankName && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Bank Account</p>
+                  <p className="font-medium">{reimbursement.submittedBy.bankName}</p>
+                  <p className="text-sm text-muted-foreground">{reimbursement.submittedBy.bankAccountNo}</p>
+                </div>
+              )}
+
+              {reimbursement.project && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Project</p>
+                  <p className="font-medium">{reimbursement.project.projectName}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {reimbursement.project.clientName}
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Description</p>
+                <p className="text-sm leading-relaxed">{reimbursement.description}</p>
+              </div>
+
+              {reimbursement.receiptUrl && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Receipt</p>
+                  <a
+                    href={reimbursement.receiptUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                  >
+                    <Eye className="h-4 w-4" />
+                    View Receipt
+                  </a>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Finance Review Info */}
+          {reimbursement.reviewedBy && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Finance Review</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Reviewed By</p>
+                  <p className="font-medium">{reimbursement.reviewedBy.name}</p>
+                  <p className="text-sm text-muted-foreground">{reimbursement.reviewedBy.email}</p>
+                </div>
+                {reimbursement.reviewedAt && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Reviewed At</p>
+                    <p className="text-sm">{format(new Date(reimbursement.reviewedAt), "dd MMMM yyyy HH:mm")}</p>
+                  </div>
+                )}
+                {reimbursement.reviewNotes && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Review Notes</p>
+                    <p className="text-sm">{reimbursement.reviewNotes}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {reimbursement.rejectionReason && (
+            <Card className="border-red-200 dark:border-red-900">
+              <CardHeader>
+                <CardTitle className="text-red-600 dark:text-red-400">Rejection Reason</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm">{reimbursement.rejectionReason}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {reimbursement.approvalNotes && (
+            <Card className="border-green-200 dark:border-green-900">
+              <CardHeader>
+                <CardTitle className="text-green-600 dark:text-green-400">Approval Notes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm">{reimbursement.approvalNotes}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Payment Proof */}
+          {reimbursement.paymentProofUrl && (
+            <Card className="border-green-200 dark:border-green-900">
+              <CardHeader>
+                <CardTitle className="text-green-600 dark:text-green-400">Payment Proof</CardTitle>
+                <CardDescription>
+                  Paid on {format(new Date(reimbursement.paidAt!), "dd MMMM yyyy")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <a
+                  href={reimbursement.paymentProofUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                >
+                  <Eye className="h-4 w-4" />
+                  View Payment Proof
+                </a>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Timeline */}
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle>Status Timeline</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ExpenseTimeline
+                type="reimbursement"
+                status={reimbursement.status}
+                submittedAt={new Date(reimbursement.submittedAt)}
+                submittedBy={reimbursement.submittedBy?.name}
+                reviewedAt={reimbursement.reviewedAt ? new Date(reimbursement.reviewedAt) : null}
+                reviewedBy={reimbursement.reviewedBy?.name}
+                approvedAt={reimbursement.approvedAt ? new Date(reimbursement.approvedAt) : null}
+                approvedBy={reimbursement.approvedBy?.name}
+                paidAt={reimbursement.paidAt ? new Date(reimbursement.paidAt) : null}
+                paidBy={reimbursement.paidBy?.name}
+                rejectionReason={reimbursement.rejectionReason}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Approve Dialog */}
+      <Dialog open={isApproveDialogOpen} onOpenChange={setIsApproveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Approve Reimbursement</DialogTitle>
+            <DialogDescription>
+              Approve this reimbursement and forward to finance for payment
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Approval Notes (Optional)</Label>
+              <Textarea
+                value={approvalNotes}
+                onChange={(e) => setApprovalNotes(e.target.value)}
+                placeholder="Add any notes about this approval..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsApproveDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleApprove} disabled={isSubmitting}>
+              {isSubmitting ? "Processing..." : "Confirm Approval"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Dialog */}
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Reimbursement</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this reimbursement
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Rejection Reason *</Label>
+              <Textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Explain why this is being rejected..."
+                rows={4}
+                required
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleReject} 
+              disabled={isSubmitting || !rejectionReason.trim()}
+            >
+              {isSubmitting ? "Processing..." : "Confirm Rejection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

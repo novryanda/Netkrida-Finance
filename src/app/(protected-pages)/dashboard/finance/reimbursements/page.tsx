@@ -1,5 +1,13 @@
-import EmptyPages from "@/components/empty/empty-pages";
+/**
+ * Finance Reimbursements Page
+ */
+import { Suspense } from "react";
+import { FinanceReimbursementsList } from "@/components/dashboard/finance/reimbursements/finance-reimbursements-list";
 
-export default function ReimbursementsPage() {
-  return <EmptyPages />;
+export default function FinanceReimbursementsPage() {
+  return (
+    <Suspense fallback={<div>Loading reimbursements...</div>}>
+      <FinanceReimbursementsList />
+    </Suspense>
+  );
 }

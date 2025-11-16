@@ -1,5 +1,15 @@
-import EmptyPages from "@/components/empty/empty-pages";
+/**
+ * Staff Reimbursements List Page
+ * STAFF dapat melihat semua reimbursement requests mereka
+ */
 
-export default function ReimbursementsPage() {
-  return <EmptyPages />;
+import { Suspense } from "react";
+import { StaffReimbursementsList } from "@/components/dashboard/staff/reimbursements/staff-reimbursements-list";
+
+export default function StaffReimbursementsPage() {
+  return (
+    <Suspense fallback={<div>Loading reimbursements...</div>}>
+      <StaffReimbursementsList />
+    </Suspense>
+  );
 }

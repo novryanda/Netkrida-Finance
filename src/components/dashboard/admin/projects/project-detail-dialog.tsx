@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ProjectStatus, ExpenseType } from "@/server/schema/enums";
+import { ProjectStatus, ExpenseType, ExpenseSourceType } from "@/server/schema/enums";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import {
@@ -53,9 +53,17 @@ interface ProjectDetailDialogProps {
       description: string;
       amount: string | number;
       expenseDate: Date | string;
-      expenseType: ExpenseType;
-      createdBy: {
+      sourceType: ExpenseSourceType;
+      recordedBy: {
         name: string | null;
+        email: string | null;
+      };
+      sourceSubmitter?: {
+        name: string | null;
+        email: string | null;
+      };
+      category?: {
+        name: string;
       };
     }>;
     projectRevisions?: Array<{
@@ -265,7 +273,8 @@ export function ProjectDetailDialog({
                       <TableHead>Date</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead>Created By</TableHead>
+                      <TableHead>Submitted By</TableHead>
+                      <TableHead>Recorded By</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -276,15 +285,57 @@ export function ProjectDetailDialog({
                           {format(new Date(expense.expenseDate), "dd/MM/yyyy")}
                         </TableCell>
                         <TableCell className="max-w-xs">
-                          <p className="text-sm truncate">{expense.description}</p>
+                          <div className="space-y-1">
+                            <p className="text-sm truncate">{expense.description}</p>
+                            {expense.category && (
+                              <p className="text-xs text-muted-foreground">
+                                {expense.category.name}
+                              </p>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {expense.expenseType}
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "text-xs",
+                              expense.sourceType === ExpenseSourceType.REIMBURSEMENT
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : "bg-green-50 text-green-700 border-green-200"
+                            )}
+                          >
+                            {expense.sourceType === ExpenseSourceType.REIMBURSEMENT 
+                              ? "Reimbursement" 
+                              : "Direct Expense"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm">
-                          {expense.createdBy?.name || "Unknown"}
+                          {expense.sourceType === ExpenseSourceType.REIMBURSEMENT ? (
+                            <div>
+                              <p className="font-medium">
+                                {expense.sourceSubmitter?.name || "Unknown"}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                (Staff Request)
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground text-xs">
+                              -
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          <div>
+                            <p className="font-medium">
+                              {expense.recordedBy?.name || "Unknown"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {expense.sourceType === ExpenseSourceType.REIMBURSEMENT 
+                                ? "(Finance)" 
+                                : "(Finance)"}
+                            </p>
+                          </div>
                         </TableCell>
                         <TableCell className="text-right font-medium">
                           Rp {Number(expense.amount).toLocaleString("id-ID")}

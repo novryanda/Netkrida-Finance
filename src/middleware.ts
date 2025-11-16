@@ -97,7 +97,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Batasi akses API tertentu
-  if (pathname.startsWith("/api/admin") && token.role !== "ADMIN") {
+  // Exception: /api/admin/categories bisa diakses semua authenticated users (read-only)
+  if (pathname.startsWith("/api/admin") && !pathname.startsWith("/api/admin/categories") && token.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   if (pathname.startsWith("/api/finance") && token.role !== "FINANCE" && token.role !== "ADMIN") {

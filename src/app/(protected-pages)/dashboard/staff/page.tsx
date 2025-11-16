@@ -1,6 +1,7 @@
 import { Receipt, FileText, Clock, CheckCircle, XCircle } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export default function StaffDashboard() {
   return (
@@ -12,10 +13,12 @@ export default function StaffDashboard() {
             Kelola expense dan reimbursement Anda
           </p>
         </div>
-        <Button>
-          <Receipt className="mr-2 h-4 w-4" />
-          Submit New Expense
-        </Button>
+        <Link href="/dashboard/staff/reimbursements/new">
+          <Button>
+            <Receipt className="mr-2 h-4 w-4" />
+            Submit New Reimbursement
+          </Button>
+        </Link>
       </div>
 
       {/* Stats Cards */}
@@ -163,14 +166,18 @@ export default function StaffDashboard() {
             <CardDescription>Aksi cepat yang sering digunakan</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="outline" className="w-full justify-start">
-              <Receipt className="mr-2 h-4 w-4" />
-              Submit New Reimbursement
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              <FileText className="mr-2 h-4 w-4" />
-              View All Expenses
-            </Button>
+            <Link href="/dashboard/staff/reimbursements/new" className="block">
+              <Button variant="outline" className="w-full justify-start">
+                <Receipt className="mr-2 h-4 w-4" />
+                Submit New Reimbursement
+              </Button>
+            </Link>
+            <Link href="/dashboard/staff/reimbursements" className="block">
+              <Button variant="outline" className="w-full justify-start">
+                <FileText className="mr-2 h-4 w-4" />
+                View All Reimbursements
+              </Button>
+            </Link>
           </CardContent>
         </Card>
 

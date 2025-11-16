@@ -8,6 +8,41 @@ import { ProjectStatus } from "@/server/schema/enums";
 import type { CreateProjectInput, UpdateProjectInput } from "@/server/schema";
 import { Prisma } from "@prisma/client";
 
+// Type untuk project dengan relasi lengkap
+export type ProjectWithRelations = Prisma.ProjectGetPayload<{
+  include: {
+    createdBy: {
+      select: {
+        id: true;
+        name: true;
+        email: true;
+      };
+    };
+    expenses: {
+      include: {
+        category: true;
+      };
+    };
+    projectRevisions: {
+      include: {
+        changedBy: {
+          select: {
+            id: true;
+            name: true;
+            email: true;
+          };
+        };
+      };
+    };
+    _count: {
+      select: {
+        expenses: true;
+        projectRevisions: true;
+      };
+    };
+  };
+}>;
+
 export class ProjectRepository {
   /**
    * Get all projects dengan pagination dan filter
@@ -93,7 +128,7 @@ export class ProjectRepository {
    * Get project by ID
    */
   async findById(id: string) {
-    return await db.project.findUnique({
+    const project = await db.project.findUnique({
       where: { id },
       include: {
         createdBy: {
@@ -106,14 +141,14 @@ export class ProjectRepository {
         expenses: {
           orderBy: { expenseDate: "desc" },
           include: {
-            createdBy: {
+            category: true,
+            recordedBy: {
               select: {
                 id: true,
                 name: true,
                 email: true,
               },
             },
-            reimbursement: true,
           },
         },
         projectRevisions: {
@@ -136,11 +171,64 @@ export class ProjectRepository {
         },
       },
     });
+
+    if (!project) {
+      return null;
+    }
+
+    // Fetch reimbursements and direct expenses separately to get submitter info
+    const reimbursements = await db.reimbursement.findMany({
+      where: { projectId: id },
+      select: {
+        id: true,
+        submittedBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    const directExpenses = await db.directExpenseRequest.findMany({
+      where: { projectId: id },
+      select: {
+        id: true,
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // Create lookup maps
+    const reimbursementMap = new Map(
+      reimbursements.map((r) => [r.id, r.submittedBy])
+    );
+    const directExpenseMap = new Map(
+      directExpenses.map((d) => [d.id, d.createdBy])
+    );
+
+    // Enhance expenses with source information
+    const enhancedExpenses = project.expenses.map((expense) => ({
+      ...expense,
+      sourceType: expense.sourceType,
+      sourceSubmitter:
+        expense.sourceType === "REIMBURSEMENT"
+          ? reimbursementMap.get(expense.sourceId)
+          : directExpenseMap.get(expense.sourceId),
+    }));
+
+    return {
+      ...project,
+      expenses: enhancedExpenses,
+    };
   }
 
-  /**
-   * Create new project
-   */
   async create(data: CreateProjectInput, createdById: string) {
     return await db.project.create({
       data: {

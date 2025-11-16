@@ -24,9 +24,22 @@ export enum ExpenseType {
 
 export enum ReimbursementStatus {
   PENDING = "PENDING",
+  REVIEWED = "REVIEWED",
   APPROVED = "APPROVED",
   PAID = "PAID",
   REJECTED = "REJECTED",
+}
+
+export enum DirectExpenseStatus {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  PAID = "PAID",
+  REJECTED = "REJECTED",
+}
+
+export enum ExpenseSourceType {
+  REIMBURSEMENT = "REIMBURSEMENT",
+  DIRECT_EXPENSE = "DIRECT_EXPENSE",
 }
 
 // Helper functions untuk label yang lebih user-friendly
@@ -50,9 +63,22 @@ export const ExpenseTypeLabels: Record<ExpenseType, string> = {
 
 export const ReimbursementStatusLabels: Record<ReimbursementStatus, string> = {
   [ReimbursementStatus.PENDING]: "Pending",
+  [ReimbursementStatus.REVIEWED]: "Reviewed",
   [ReimbursementStatus.APPROVED]: "Approved",
   [ReimbursementStatus.PAID]: "Paid",
   [ReimbursementStatus.REJECTED]: "Rejected",
+};
+
+export const DirectExpenseStatusLabels: Record<DirectExpenseStatus, string> = {
+  [DirectExpenseStatus.PENDING]: "Pending",
+  [DirectExpenseStatus.APPROVED]: "Approved",
+  [DirectExpenseStatus.PAID]: "Paid",
+  [DirectExpenseStatus.REJECTED]: "Rejected",
+};
+
+export const ExpenseSourceTypeLabels: Record<ExpenseSourceType, string> = {
+  [ExpenseSourceType.REIMBURSEMENT]: "Reimbursement",
+  [ExpenseSourceType.DIRECT_EXPENSE]: "Direct Expense",
 };
 
 // Helper functions untuk badge colors
@@ -65,7 +91,15 @@ export const ProjectStatusColors: Record<ProjectStatus, string> = {
 
 export const ReimbursementStatusColors: Record<ReimbursementStatus, string> = {
   [ReimbursementStatus.PENDING]: "bg-yellow-100 text-yellow-800",
-  [ReimbursementStatus.APPROVED]: "bg-blue-100 text-blue-800",
-  [ReimbursementStatus.PAID]: "bg-green-100 text-green-800",
+  [ReimbursementStatus.REVIEWED]: "bg-blue-100 text-blue-800",
+  [ReimbursementStatus.APPROVED]: "bg-green-100 text-green-800",
+  [ReimbursementStatus.PAID]: "bg-emerald-100 text-emerald-800",
   [ReimbursementStatus.REJECTED]: "bg-red-100 text-red-800",
+};
+
+export const DirectExpenseStatusColors: Record<DirectExpenseStatus, string> = {
+  [DirectExpenseStatus.PENDING]: "bg-yellow-100 text-yellow-800",
+  [DirectExpenseStatus.APPROVED]: "bg-green-100 text-green-800",
+  [DirectExpenseStatus.PAID]: "bg-emerald-100 text-emerald-800",
+  [DirectExpenseStatus.REJECTED]: "bg-red-100 text-red-800",
 };

@@ -1,11 +1,16 @@
 import { db } from "@/server/db";
-import { 
-  ReimbursementStatus, 
-  DirectExpenseStatus, 
+import {
+  ReimbursementStatus,
+  DirectExpenseStatus,
   ProjectStatus,
-  UserRole 
+  UserRole
 } from "@prisma/client";
-import { startOfMonth, endOfMonth, startOfYear, subMonths } from "date-fns";
+import {
+  startOfMonth,
+  endOfMonth,
+  subMonths,
+  startOfYear
+} from "date-fns";
 
 export class DashboardRepository {
   // ============================================
@@ -17,6 +22,11 @@ export class DashboardRepository {
     const startMonth = startOfMonth(now);
     const endMonth = endOfMonth(now);
     const startYear = startOfYear(now);
+    // Bulan lalu
+    const prevMonth = new Date(startMonth);
+    prevMonth.setMonth(prevMonth.getMonth() - 1);
+    const startPrevMonth = startOfMonth(prevMonth);
+    const endPrevMonth = endOfMonth(prevMonth);
 
     const [
       totalProjects,
@@ -25,7 +35,9 @@ export class DashboardRepository {
       pendingReimbursements,
       pendingDirectExpenses,
       totalExpensesThisMonth,
+      totalExpensesPrevMonth,
       totalExpensesThisYear,
+      totalProjectsPrev,
     ] = await Promise.all([
       db.project.count(),
       db.project.count({ where: { status: ProjectStatus.ACTIVE } }),
@@ -44,13 +56,34 @@ export class DashboardRepository {
       db.expense.aggregate({
         where: {
           expenseDate: {
+            gte: startPrevMonth,
+            lte: endPrevMonth,
+          },
+        },
+        _sum: { amount: true },
+      }),
+      db.expense.aggregate({
+        where: {
+          expenseDate: {
             gte: startYear,
             lte: now,
           },
         },
         _sum: { amount: true },
       }),
+      db.project.count({
+        where: {
+          createdAt: {
+            gte: startPrevMonth,
+            lte: endPrevMonth,
+          },
+        },
+      }),
     ]);
+
+    const thisMonth = totalExpensesThisMonth._sum.amount?.toNumber() || 0;
+    const prevMonthVal = totalExpensesPrevMonth._sum.amount?.toNumber() || 0;
+    const growth = prevMonthVal === 0 ? null : ((thisMonth - prevMonthVal) / prevMonthVal) * 100;
 
     return {
       totalProjects,
@@ -58,8 +91,11 @@ export class DashboardRepository {
       totalUsers,
       pendingReimbursements,
       pendingDirectExpenses,
-      totalExpensesThisMonth: totalExpensesThisMonth._sum.amount?.toNumber() || 0,
+      totalExpensesThisMonth: thisMonth,
+      totalExpensesPrevMonth: prevMonthVal,
+      totalExpensesGrowth: growth,
       totalExpensesThisYear: totalExpensesThisYear._sum.amount?.toNumber() || 0,
+      totalProjectsPrev,
     };
   }
 
@@ -88,6 +124,46 @@ export class DashboardRepository {
       });
     }
 
+    return monthsData;
+  }
+
+  async getIncomeExpenseTrend(months: number = 6) {
+    const now = new Date();
+    const monthsData = [];
+
+    for (let i = months - 1; i >= 0; i--) {
+      const monthDate = subMonths(now, i);
+      const startMonth = startOfMonth(monthDate);
+      const endMonth = endOfMonth(monthDate);
+
+      // Total pemasukan: sum projectValue dari project yang dibuat di bulan tsb
+      const income = await db.project.aggregate({
+        where: {
+          createdAt: {
+            gte: startMonth,
+            lte: endMonth,
+          },
+        },
+        _sum: { projectValue: true },
+      });
+
+      // Total pengeluaran: sum amount dari expense di bulan tsb
+      const expense = await db.expense.aggregate({
+        where: {
+          expenseDate: {
+            gte: startMonth,
+            lte: endMonth,
+          },
+        },
+        _sum: { amount: true },
+      });
+
+      monthsData.push({
+        month: monthDate.toLocaleDateString("id-ID", { month: "short", year: "numeric" }),
+        income: income._sum.projectValue?.toNumber() || 0,
+        expense: expense._sum.amount?.toNumber() || 0,
+      });
+    }
     return monthsData;
   }
 

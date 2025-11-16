@@ -16,14 +16,14 @@ export class DashboardService {
       overview,
       monthlyExpenses,
       expensesByCategory,
-      projectStatus,
+      incomeExpenseTrend,
       topProjects,
       recentActivities,
     ] = await Promise.all([
       this.dashboardRepository.getAdminOverview(),
       this.dashboardRepository.getMonthlyExpensesTrend(6),
       this.dashboardRepository.getExpensesByCategory(),
-      this.dashboardRepository.getProjectStatusDistribution(),
+      this.dashboardRepository.getIncomeExpenseTrend(6),
       this.dashboardRepository.getTopExpenseProjects(5),
       this.dashboardRepository.getRecentActivities(10),
     ]);
@@ -32,7 +32,7 @@ export class DashboardService {
       overview,
       monthlyExpenses,
       expensesByCategory,
-      projectStatus,
+      incomeExpenseTrend,
       topProjects,
       recentActivities,
     };

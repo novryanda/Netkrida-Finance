@@ -24,6 +24,8 @@ import {
   CartesianGrid,
   Cell,
   Legend,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -45,11 +47,14 @@ interface DashboardData {
     pendingReimbursements: number;
     pendingDirectExpenses: number;
     totalExpensesThisMonth: number;
+    totalExpensesPrevMonth?: number;
+    totalExpensesGrowth?: number | null;
     totalExpensesThisYear: number;
+    totalProjectsPrev?: number;
   };
   monthlyExpenses: Array<{ month: string; amount: number }>;
   expensesByCategory: Array<{ name: string; total: number }>;
-  projectStatus: Array<{ status: string; count: number }>;
+  incomeExpenseTrend: Array<{ month: string; income: number; expense: number }>;
   topProjects: Array<{
     id: string;
     name: string;
@@ -134,7 +139,33 @@ export default function AdminDashboard() {
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.overview.totalProjects}</div>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl font-bold">{data.overview.totalProjects}</span>
+              {typeof data.overview.totalProjectsPrev === "number" && (
+                <span className={
+                  data.overview.totalProjects > data.overview.totalProjectsPrev
+                    ? "text-green-600 flex items-center gap-1"
+                    : data.overview.totalProjects < data.overview.totalProjectsPrev
+                    ? "text-red-600 flex items-center gap-1"
+                    : "text-muted-foreground flex items-center gap-1"
+                }>
+                  {data.overview.totalProjects > data.overview.totalProjectsPrev ? (
+                    <TrendingUp className="inline h-4 w-4" />
+                  ) : data.overview.totalProjects < data.overview.totalProjectsPrev ? (
+                    <span className="inline-block rotate-180"><TrendingUp className="inline h-4 w-4" /></span>
+                  ) : null}
+                  <span className="text-xs">
+                    {data.overview.totalProjectsPrev === 0
+                      ? ""
+                      : `${(
+                          ((data.overview.totalProjects - data.overview.totalProjectsPrev) /
+                            data.overview.totalProjectsPrev) *
+                          100
+                        ).toFixed(1)}%`}
+                  </span>
+                </span>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">
               {data.overview.activeProjects} aktif
             </p>
@@ -160,8 +191,30 @@ export default function AdminDashboard() {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(data.overview.totalExpensesThisMonth)}
+            <div className="flex items-center gap-2">
+              <span className="text-2xl font-bold">
+                {formatCurrency(data.overview.totalExpensesThisMonth)}
+              </span>
+              {typeof data.overview.totalExpensesGrowth === "number" && data.overview.totalExpensesPrevMonth !== undefined && (
+                <span className={
+                  data.overview.totalExpensesGrowth > 0
+                    ? "text-green-600 flex items-center gap-1"
+                    : data.overview.totalExpensesGrowth < 0
+                    ? "text-red-600 flex items-center gap-1"
+                    : "text-muted-foreground flex items-center gap-1"
+                }>
+                  {data.overview.totalExpensesGrowth > 0 ? (
+                    <TrendingUp className="inline h-4 w-4" />
+                  ) : data.overview.totalExpensesGrowth < 0 ? (
+                    <span className="inline-block rotate-180"><TrendingUp className="inline h-4 w-4" /></span>
+                  ) : null}
+                  <span className="text-xs">
+                    {data.overview.totalExpensesPrevMonth === 0
+                      ? ""
+                      : `${Math.abs(data.overview.totalExpensesGrowth).toFixed(1)}%`}
+                  </span>
+                </span>
+              )}
             </div>
             <p className="text-xs text-muted-foreground">Bulan ini</p>
           </CardContent>
@@ -253,7 +306,7 @@ export default function AdminDashboard() {
                     `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
                   }
                   outerRadius={80}
-                  fill="#8884d8"
+                  fill="#2c24c1ff"
                   dataKey="total"
                 >
                   {data.expensesByCategory.map((entry, index) => (
@@ -278,29 +331,37 @@ export default function AdminDashboard() {
 
       {/* Charts Row 2 */}
       <div className="grid gap-4 md:grid-cols-2">
-        {/* Project Status Distribution */}
+        {/* Income vs Expense Line Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Project Status</CardTitle>
-            <CardDescription>Distribusi status project</CardDescription>
+            <CardTitle>Income vs Expense</CardTitle>
+            <CardDescription>Pemasukan & pengeluaran 6 bulan terakhir</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer
               config={{
-                count: {
-                  label: "Count",
+                income: {
+                  label: "Income",
+                  color: "hsl(var(--chart-4))",
+                },
+                expense: {
+                  label: "Expense",
                   color: "hsl(var(--chart-3))",
                 },
               }}
               className="h-[300px]"
             >
-              <BarChart data={data.projectStatus}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="status" />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="count" fill="hsl(var(--chart-3))" />
-              </BarChart>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data.incomeExpenseTrend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`} />
+                  <Tooltip content={<ChartTooltipContent />} />
+                  <Legend />
+                  <Line type="monotone" dataKey="income" stroke="hsl(var(--chart-4))" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="expense" stroke="hsl(var(--chart-3))" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
         </Card>
